@@ -1,14 +1,23 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { SubmitButton } from "./submit-button";
 
-export default function Login({
+export default async function Login({
   searchParams,
 }: {
   searchParams: { message: string };
 }) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/");
+  }
+
   const signIn = async (formData: FormData) => {
     "use server";
 
@@ -25,7 +34,7 @@ export default function Login({
       return redirect("/login?message=Could not authenticate user");
     }
 
-    return redirect("/protected");
+    return redirect("/");
   };
 
   const signUp = async (formData: FormData) => {
@@ -34,9 +43,25 @@ export default function Login({
     const origin = headers().get("origin");
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const supabase = createClient();
+    const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleSecret = process.env.SERVICE_ROLE_KEY;
 
-    const { error } = await supabase.auth.signUp({
+    if (!publicUrl || !serviceRoleSecret) {
+      return false;
+    }
+
+    const supabase = createAdminClient(publicUrl, serviceRoleSecret, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    const {
+      data: { user },
+      error: signUpError,
+    } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -44,37 +69,30 @@ export default function Login({
       },
     });
 
-    if (error) {
-      return redirect("/login?message=Could not authenticate user");
+    if (signUpError) {
+      return redirect("/login?message=Could not create user");
+    }
+
+    if (user) {
+      const { error: insertError } = await supabase.from("users").insert([
+        {
+          id: user.id,
+          email: user.email,
+        },
+      ]);
+
+      if (insertError) {
+        console.error("Error inserting user into users table:", insertError);
+        return redirect("/login?message=Could not create user");
+      }
     }
 
     return redirect("/login?message=Check email to continue sign in process");
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2">
-      <Link
-        href="/"
-        className="absolute left-8 top-8 py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover flex items-center group text-sm"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1"
-        >
-          <polyline points="15 18 9 12 15 6" />
-        </svg>{" "}
-        Back
-      </Link>
-
-      <form className="animate-in flex-1 flex flex-col w-full justify-center gap-2 text-foreground">
+    <div className="flex-1 flex flex-col h-full w-full items-center px-8 gap-2">
+      <form className="animate-in flex-1 flex flex-col w-full justify-center gap-2 sm:max-w-md  text-foreground">
         <label className="text-md" htmlFor="email">
           Email
         </label>
@@ -96,7 +114,7 @@ export default function Login({
         />
         <SubmitButton
           formAction={signIn}
-          className="bg-green-700 rounded-md px-4 py-2 text-foreground mb-2"
+          className="bg-purple-800 rounded-md px-4 py-2 text-background mb-2"
           pendingText="Signing In..."
         >
           Sign In

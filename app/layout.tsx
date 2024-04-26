@@ -1,14 +1,15 @@
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
+import Navbar from "./common/layout/Navbar";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
+const defaultUrl = process.env.NETLIFY_URL
+  ? `https://${process.env.NETLIFY_URL}`
   : "http://localhost:3000";
 
 export const metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: "ETO Properties Application",
+  description: "ETO Properties Application",
 };
 
 export default function RootLayout({
@@ -18,10 +19,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={GeistSans.className}>
-      <body className="bg-background text-foreground">
-        <main className="min-h-screen flex flex-col items-center">
-          {children}
-        </main>
+      <body className="flex flex-col h-screen w-screen bg-background text-foreground px-4 sm:px-8 lg:px-16">
+        <Navbar />
+        <main className="flex flex-col h-full w-full">{children}</main>
       </body>
     </html>
   );
