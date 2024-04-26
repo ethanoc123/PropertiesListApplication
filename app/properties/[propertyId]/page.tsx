@@ -1,6 +1,6 @@
-// pages/properties/[id].tsx
-import { Property } from "@/app/common/types/types";
-import { createClient } from "@/utils/supabase/server";
+import { Property } from '@/app/common/types/types';
+import { createClient } from '@/utils/supabase/server';
+import ImageCarousel from './components/ImageCarousel';
 
 export default async function PropertyPage({
   params,
@@ -10,16 +10,19 @@ export default async function PropertyPage({
   const supabase = createClient();
 
   const response = await supabase
-    .from("properties")
-    .select("*")
-    .eq("id", params.propertyId)
+    .from('properties')
+    .select('*')
+    .eq('id', params.propertyId)
     .single();
 
   const property = response.data as Property;
 
   return (
-    <div>
-      <h1>{property.description}</h1>
+    <div className='flex flex-col gap-16 overflow-hidden'>
+      <div>
+        <ImageCarousel images={property.images} />
+      </div>
+      <p className='font-semibold'>{property.description}</p>
     </div>
   );
 }

@@ -8,4 +8,5 @@ export interface Property {
   price: string;
   property_type: string;
   house_type: string;
+  city: string;
 }
